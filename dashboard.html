@@ -1,0 +1,2183 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>LGB Construction - Business Dashboard</title>
+<meta name="description" content="LGB Construction Business Dashboard">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --primary: #1e3a5f;
+    --primary-light: #2d5a9e;
+    --accent: #f0a500;
+    --accent-light: #ffc93c;
+    --bg: #f0f2f5;
+    --card: #ffffff;
+    --text: #1a1a2e;
+    --text-muted: #6b7280;
+    --border: #e5e7eb;
+    --success: #10b981;
+    --danger: #ef4444;
+    --warning: #f59e0b;
+    --info: #3b82f6;
+    --sidebar-w: 240px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', Arial, sans-serif; background: var(--bg); color: var(--text); display: flex; min-height: 100vh; }
+
+  /* SIDEBAR */
+  #sidebar {
+    width: var(--sidebar-w); background: var(--primary); color: #fff;
+    display: flex; flex-direction: column; position: fixed; top: 0; left: 0; height: 100vh; z-index: 100;
+    transition: width 0.2s;
+  }
+  .sidebar-logo {
+    padding: 24px 20px 16px; border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  .sidebar-logo h1 { font-size: 20px; font-weight: 700; color: var(--accent); }
+  .sidebar-logo p { font-size: 11px; color: rgba(255,255,255,0.6); margin-top: 2px; }
+  .sidebar-nav { flex: 1; padding: 12px 0; overflow-y: auto; }
+  .nav-section { padding: 8px 16px 4px; font-size: 10px; font-weight: 700; color: rgba(255,255,255,0.4); text-transform: uppercase; letter-spacing: 1px; }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 10px 20px;
+    cursor: pointer; transition: background 0.15s; font-size: 14px; color: rgba(255,255,255,0.8);
+    border-left: 3px solid transparent;
+  }
+  .nav-item:hover { background: rgba(255,255,255,0.08); }
+  .nav-item.active { background: rgba(255,255,255,0.12); color: #fff; border-left-color: var(--accent); }
+  .nav-item .icon { font-size: 18px; width: 22px; text-align: center; }
+  .sidebar-footer { padding: 16px 20px; border-top: 1px solid rgba(255,255,255,0.1); font-size: 12px; color: rgba(255,255,255,0.4); }
+
+  /* MAIN */
+  #main { margin-left: var(--sidebar-w); flex: 1; min-width: 0; }
+  #topbar {
+    background: var(--card); border-bottom: 1px solid var(--border);
+    padding: 14px 28px; display: flex; align-items: center; justify-content: space-between;
+    position: sticky; top: 0; z-index: 50;
+  }
+  #topbar h2 { font-size: 18px; font-weight: 600; }
+  .topbar-right { display: flex; align-items: center; gap: 12px; }
+  .badge { background: var(--accent); color: #fff; font-size: 11px; font-weight: 700; padding: 3px 8px; border-radius: 12px; }
+  #content { padding: 24px 28px; }
+
+  /* PAGE SECTIONS */
+  .page { display: none; }
+  .page.active { display: block; }
+
+  /* CARDS GRID */
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .kpi-card {
+    background: var(--card); border-radius: 12px; padding: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06); border-top: 4px solid transparent;
+    transition: transform 0.15s, box-shadow 0.15s;
+  }
+  .kpi-card:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(0,0,0,0.1); }
+  .kpi-card.blue { border-top-color: var(--info); }
+  .kpi-card.green { border-top-color: var(--success); }
+  .kpi-card.orange { border-top-color: var(--accent); }
+  .kpi-card.red { border-top-color: var(--danger); }
+  .kpi-card.purple { border-top-color: #8b5cf6; }
+  .kpi-label { font-size: 12px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px; }
+  .kpi-value { font-size: 24px; font-weight: 700; }
+  .kpi-sub { font-size: 12px; color: var(--text-muted); margin-top: 4px; }
+  .kpi-change { font-size: 12px; margin-top: 6px; }
+  .kpi-change.up { color: var(--success); }
+  .kpi-change.down { color: var(--danger); }
+
+  /* CHART CARDS */
+  .chart-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 24px; }
+  .chart-card {
+    background: var(--card); border-radius: 12px; padding: 20px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .chart-card h3 { font-size: 14px; font-weight: 600; margin-bottom: 16px; color: var(--text); }
+  .chart-container { position: relative; height: 220px; }
+
+  /* TABLE */
+  .table-card { background: var(--card); border-radius: 12px; padding: 20px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); margin-bottom: 24px; }
+  .table-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 14px; }
+  .table-header h3 { font-size: 14px; font-weight: 600; }
+  .table-toolbar { display: flex; gap: 8px; align-items: center; }
+  input[type=search], input[type=text], select, input[type=number], input[type=date], textarea {
+    border: 1px solid var(--border); border-radius: 8px; padding: 7px 12px;
+    font-size: 13px; outline: none; font-family: inherit;
+    transition: border-color 0.15s;
+  }
+  input:focus, select:focus, textarea:focus { border-color: var(--primary-light); }
+  .btn {
+    padding: 8px 16px; border-radius: 8px; border: none; cursor: pointer;
+    font-size: 13px; font-weight: 600; transition: all 0.15s; font-family: inherit;
+    display: inline-flex; align-items: center; gap: 6px;
+  }
+  .btn-primary { background: var(--primary-light); color: #fff; }
+  .btn-primary:hover { background: var(--primary); }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-success:hover { background: #059669; }
+  .btn-danger { background: var(--danger); color: #fff; }
+  .btn-danger:hover { background: #dc2626; }
+  .btn-ghost { background: var(--bg); color: var(--text); border: 1px solid var(--border); }
+  .btn-ghost:hover { background: var(--border); }
+  .btn-accent { background: var(--accent); color: #fff; }
+  .btn-accent:hover { background: #d97706; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { background: var(--bg); padding: 10px 12px; text-align: left; font-weight: 600; font-size: 12px; text-transform: uppercase; color: var(--text-muted); border-bottom: 2px solid var(--border); white-space: nowrap; }
+  td { padding: 10px 12px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: #f8fafc; }
+  .status-paid { background: #d1fae5; color: #065f46; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .status-pending { background: #fef3c7; color: #92400e; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+  .status-cancel { background: #fee2e2; color: #991b1b; padding: 3px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; margin-bottom: 20px; background: var(--bg); padding: 4px; border-radius: 10px; width: fit-content; }
+  .tab { padding: 8px 18px; border-radius: 7px; cursor: pointer; font-size: 13px; font-weight: 600; color: var(--text-muted); transition: all 0.15s; }
+  .tab.active { background: var(--card); color: var(--primary); box-shadow: 0 1px 4px rgba(0,0,0,0.08); }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* STOCK GRID */
+  .stock-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px; }
+  .stock-card {
+    background: var(--card); border-radius: 12px; padding: 18px;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.06); position: relative;
+  }
+  .stock-card h4 { font-size: 13px; font-weight: 700; margin-bottom: 4px; }
+  .stock-card .stock-type { font-size: 11px; color: var(--text-muted); margin-bottom: 12px; }
+  .stock-bar { background: var(--bg); border-radius: 6px; height: 8px; overflow: hidden; margin: 8px 0; }
+  .stock-bar-fill { height: 100%; border-radius: 6px; transition: width 0.5s; }
+  .stock-bar-fill.green { background: var(--success); }
+  .stock-bar-fill.orange { background: var(--warning); }
+  .stock-bar-fill.red { background: var(--danger); }
+  .stock-nums { display: flex; justify-content: space-between; font-size: 12px; }
+  .stock-available { font-weight: 700; color: var(--success); }
+  .stock-rented { color: var(--warning); }
+
+  /* GALLERY */
+  .gallery-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+  .gallery-item { border-radius: 8px; overflow: hidden; aspect-ratio: 1; cursor: pointer; transition: transform 0.15s; }
+  .gallery-item:hover { transform: scale(1.03); }
+  .gallery-item img { width: 100%; height: 100%; object-fit: cover; }
+
+  /* CALENDAR */
+  .calendar-embed { width: 100%; border: none; border-radius: 12px; box-shadow: 0 1px 4px rgba(0,0,0,0.06); }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000; align-items: center; justify-content: center; }
+  .modal-overlay.open { display: flex; }
+  .modal { background: var(--card); border-radius: 16px; padding: 28px; width: 90%; max-width: 520px; max-height: 90vh; overflow-y: auto; }
+  .modal h3 { font-size: 17px; font-weight: 700; margin-bottom: 20px; }
+  .form-group { margin-bottom: 16px; }
+  .form-group label { display: block; font-size: 12px; font-weight: 600; color: var(--text-muted); margin-bottom: 6px; text-transform: uppercase; }
+  .form-group input, .form-group select, .form-group textarea { width: 100%; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .modal-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+
+  /* UPLOAD ZONE */
+  .upload-zone {
+    border: 2px dashed var(--border); border-radius: 12px; padding: 40px;
+    text-align: center; cursor: pointer; transition: all 0.15s; margin-bottom: 20px;
+  }
+  .upload-zone:hover, .upload-zone.dragover { border-color: var(--primary-light); background: #eff6ff; }
+  .upload-zone .upload-icon { font-size: 40px; margin-bottom: 12px; }
+  .upload-zone p { color: var(--text-muted); font-size: 14px; }
+  .upload-zone strong { color: var(--primary-light); }
+  .file-list { display: flex; flex-direction: column; gap: 8px; }
+  .file-item {
+    display: flex; align-items: center; gap: 12px; padding: 12px 16px;
+    background: var(--bg); border-radius: 8px; font-size: 13px;
+  }
+  .file-item .file-icon { font-size: 20px; }
+  .file-item .file-name { flex: 1; font-weight: 600; }
+  .file-item .file-meta { color: var(--text-muted); font-size: 11px; }
+
+  /* NOTIFICATION */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px; background: var(--text);
+    color: #fff; padding: 12px 20px; border-radius: 10px; font-size: 14px;
+    z-index: 9999; transform: translateY(100px); opacity: 0; transition: all 0.3s;
+    max-width: 320px;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { background: var(--success); }
+  .toast.error { background: var(--danger); }
+
+  /* RESPONSIVE */
+  @media (max-width: 900px) {
+    .chart-grid { grid-template-columns: 1fr; }
+    #sidebar { width: 60px; }
+    #sidebar .nav-item span { display: none; }
+    #sidebar .sidebar-logo p, #sidebar .nav-section, #sidebar .sidebar-footer { display: none; }
+    #sidebar .sidebar-logo h1 { font-size: 14px; }
+    #main { margin-left: 60px; }
+  }
+
+  .section-title { font-size: 16px; font-weight: 700; margin-bottom: 16px; display: flex; align-items: center; gap: 8px; }
+  .divider { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+  .text-right { text-align: right; }
+  .text-green { color: var(--success); font-weight: 700; }
+  .text-red { color: var(--danger); font-weight: 700; }
+  .text-muted { color: var(--text-muted); }
+  .fw-bold { font-weight: 700; }
+  .totals-row td { font-weight: 700; background: #f8fafc; border-top: 2px solid var(--border); }
+
+  /* LANGUAGE SWITCHER */
+  .lang-switcher { display: flex; align-items: center; gap: 6px; }
+  .lang-switcher label { font-size: 11px; color: rgba(255,255,255,0.5); }
+  .lang-select {
+    background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.15);
+    color: #fff; border-radius: 6px; padding: 4px 8px; font-size: 12px; cursor: pointer;
+    outline: none;
+  }
+  .lang-select:hover { background: rgba(255,255,255,0.18); }
+  .lang-select option { background: #1e3a5f; color: #fff; }
+
+  /* UNPAID BILLS */
+  .bill-card {
+    background: var(--card); border-radius: 12px; margin-bottom: 10px;
+    border-left: 4px solid var(--border); padding: 14px 18px;
+    display: flex; align-items: center; gap: 14px; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+    transition: transform 0.15s;
+  }
+  .bill-card:hover { transform: translateX(3px); }
+  .bill-card.overdue { border-left-color: var(--danger); }
+  .bill-card.due-today { border-left-color: var(--warning); }
+  .bill-card.due-soon { border-left-color: #f59e0b; }
+  .bill-card.upcoming { border-left-color: var(--info); }
+  .bill-icon { font-size: 24px; min-width: 32px; text-align: center; }
+  .bill-info { flex: 1; }
+  .bill-info .bill-title { font-weight: 700; font-size: 14px; }
+  .bill-info .bill-meta { font-size: 12px; color: var(--text-muted); margin-top: 3px; }
+  .bill-due { text-align: right; }
+  .bill-due .bill-amount { font-size: 16px; font-weight: 700; }
+  .bill-due .bill-date { font-size: 11px; color: var(--text-muted); margin-top: 2px; }
+  .due-badge {
+    display: inline-block; padding: 2px 8px; border-radius: 10px;
+    font-size: 11px; font-weight: 700; margin-top: 4px;
+  }
+  .due-badge.overdue { background: #fee2e2; color: #b91c1c; }
+  .due-badge.due-today { background: #fef3c7; color: #92400e; }
+  .due-badge.due-soon { background: #fef9c3; color: #713f12; }
+  .due-badge.upcoming { background: #dbeafe; color: #1d4ed8; }
+  .due-badge.paid { background: #d1fae5; color: #065f46; }
+  .bills-summary { display: flex; gap: 12px; margin-bottom: 20px; flex-wrap: wrap; }
+  .bills-summary-card {
+    flex: 1; min-width: 120px; background: var(--card); border-radius: 10px;
+    padding: 14px; text-align: center; box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  }
+  .bills-summary-card .bsc-num { font-size: 28px; font-weight: 700; }
+  .bills-summary-card .bsc-label { font-size: 11px; color: var(--text-muted); margin-top: 4px; }
+  .bills-summary-card.red .bsc-num { color: var(--danger); }
+  .bills-summary-card.orange .bsc-num { color: var(--warning); }
+  .bills-summary-card.blue .bsc-num { color: var(--info); }
+  .bills-summary-card.green .bsc-num { color: var(--success); }
+
+  /* ===== PASSWORD OVERLAY ===== */
+  #auth-overlay {
+    position: fixed; inset: 0;
+    background: linear-gradient(135deg, #0f2040 0%, #1e3a5f 50%, #0f2040 100%);
+    z-index: 99999; display: flex; align-items: center; justify-content: center;
+    flex-direction: column;
+  }
+  #auth-overlay.hidden { display: none; }
+  .auth-box {
+    background: rgba(255,255,255,0.07); backdrop-filter: blur(12px);
+    border: 1px solid rgba(255,255,255,0.15); border-radius: 20px;
+    padding: 44px 48px; width: 100%; max-width: 400px; text-align: center;
+    box-shadow: 0 24px 64px rgba(0,0,0,0.5);
+  }
+  .auth-logo { font-size: 52px; margin-bottom: 10px; }
+  .auth-title { font-size: 28px; font-weight: 700; color: #f0a500; margin-bottom: 4px; }
+  .auth-sub { font-size: 14px; color: rgba(255,255,255,0.55); margin-bottom: 32px; line-height: 1.5; }
+  .auth-input {
+    width: 100%; background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.2); color: #fff;
+    border-radius: 10px; padding: 14px 18px; font-size: 16px;
+    outline: none; margin-bottom: 12px; font-family: inherit;
+    text-align: center; letter-spacing: 3px; transition: border-color 0.2s, background 0.2s;
+  }
+  .auth-input::placeholder { color: rgba(255,255,255,0.35); letter-spacing: 0; }
+  .auth-input:focus { border-color: #f0a500; background: rgba(255,255,255,0.15); }
+  .auth-btn {
+    width: 100%; background: #f0a500; color: #fff; border: none;
+    border-radius: 10px; padding: 14px; font-size: 16px; font-weight: 700;
+    cursor: pointer; transition: all 0.15s; font-family: inherit; margin-top: 4px;
+    letter-spacing: 0.5px;
+  }
+  .auth-btn:hover { background: #ffc93c; transform: translateY(-1px); box-shadow: 0 4px 16px rgba(240,165,0,0.4); }
+  .auth-btn:active { transform: translateY(0); }
+  .auth-error { color: #fc8181; font-size: 13px; min-height: 20px; margin-bottom: 4px; }
+  .auth-hint { font-size: 11px; color: rgba(255,255,255,0.25); margin-top: 20px; }
+  .auth-stars {
+    position: absolute; inset: 0; overflow: hidden; pointer-events: none; z-index: 0;
+  }
+  #auth-overlay > * { position: relative; z-index: 1; }
+</style>
+</head>
+<body>
+
+<!-- ===== PASSWORD OVERLAY ===== -->
+<div id="auth-overlay">
+  <div class="auth-box">
+    <div class="auth-logo">🏗️</div>
+    <div class="auth-title">LGB Construction</div>
+    <div class="auth-sub" id="auth-subtitle">Enter your password to access the dashboard</div>
+    <input type="password" class="auth-input" id="auth-pw1" placeholder="Password"
+           autocomplete="current-password"
+           onkeydown="if(event.key==='Enter')submitPassword()">
+    <input type="password" class="auth-input" id="auth-pw2" placeholder="Confirm password"
+           autocomplete="new-password" style="display:none;"
+           onkeydown="if(event.key==='Enter')submitPassword()">
+    <div class="auth-error" id="auth-error"></div>
+    <button class="auth-btn" id="auth-btn" onclick="submitPassword()">🔓 Unlock Dashboard</button>
+    <div class="auth-hint" id="auth-hint">🔒 LGB Woodwork · Private Dashboard · 2026</div>
+  </div>
+</div>
+
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <h1>LGB</h1>
+    <p>Construction Dashboard</p>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section">Overview</div>
+    <div class="nav-item active" onclick="navigate('dashboard')">
+      <span class="icon">📊</span><span>Dashboard</span>
+    </div>
+    <div class="nav-section">Finance</div>
+    <div class="nav-item" onclick="navigate('invoices')">
+      <span class="icon">🧾</span><span>Invoices</span>
+    </div>
+    <div class="nav-item" onclick="navigate('expenses')">
+      <span class="icon">💸</span><span>Expenses</span>
+    </div>
+    <div class="nav-section">Operations</div>
+    <div class="nav-item" onclick="navigate('stock')">
+      <span class="icon">📦</span><span>Panel Stock</span>
+    </div>
+    <div class="nav-item" onclick="navigate('gallery')">
+      <span class="icon">📷</span><span>Photo Gallery</span>
+    </div>
+    <div class="nav-section" data-i18n="nav.section.tools">Tools</div>
+    <div class="nav-item" onclick="navigate('bills')">
+      <span class="icon">⚠️</span><span data-i18n="nav.bills">Unpaid Bills</span>
+      <span id="bills-badge" style="margin-left:auto;background:var(--danger);color:#fff;font-size:10px;font-weight:700;padding:1px 6px;border-radius:10px;display:none;"></span>
+    </div>
+    <div class="nav-item" onclick="navigate('documents')">
+      <span class="icon">📁</span><span data-i18n="nav.documents">Documents</span>
+    </div>
+    <div class="nav-item" onclick="navigate('calendar')">
+      <span class="icon">📅</span><span data-i18n="nav.calendar">Calendar</span>
+    </div>
+    <div class="nav-item" onclick="navigate('history')">
+      <span class="icon">📋</span><span data-i18n="nav.history">History</span>
+    </div>
+  </div>
+  <div class="sidebar-footer" style="padding-bottom:8px;">
+    <div class="lang-switcher" style="margin-bottom:10px;">
+      <label>🌐</label>
+      <select class="lang-select" id="lang-select" onchange="setLanguage(this.value)">
+        <option value="en">English</option>
+        <option value="lo">ພາສາລາວ</option>
+        <option value="th">ภาษาไทย</option>
+        <option value="zh">中文</option>
+        <option value="fr">Français</option>
+        <option value="ja">日本語</option>
+        <option value="ko">한국어</option>
+        <option value="de">Deutsch</option>
+      </select>
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:10px;">
+      <button onclick="exportData()" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:6px;padding:6px 4px;font-size:11px;cursor:pointer;" title="Export all data as a file to share">📤 Export</button>
+      <button onclick="document.getElementById('import-file').click()" style="flex:1;background:rgba(255,255,255,0.1);border:1px solid rgba(255,255,255,0.2);color:#fff;border-radius:6px;padding:6px 4px;font-size:11px;cursor:pointer;" title="Import data from a file">📥 Import</button>
+      <input type="file" id="import-file" accept=".json" style="display:none" onchange="importData(event)">
+    </div>
+    <div style="display:flex;gap:6px;margin-bottom:10px;">
+      <button onclick="lockDashboard()" style="flex:1;background:rgba(255,100,100,0.15);border:1px solid rgba(255,100,100,0.3);color:#fca5a5;border-radius:6px;padding:6px 4px;font-size:11px;cursor:pointer;" title="Lock the dashboard">🔒 Lock</button>
+      <button onclick="openChangePassword()" style="flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);border-radius:6px;padding:6px 4px;font-size:11px;cursor:pointer;" title="Change password">🔑 Password</button>
+    </div>
+    <div style="font-size:11px;color:rgba(255,255,255,0.3);">LGB Woodwork &copy; 2026</div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div id="main">
+  <div id="topbar">
+    <h2 id="page-title" data-i18n="page.dashboard">Dashboard</h2>
+    <div class="topbar-right">
+      <span id="topbar-date" class="text-muted" style="font-size:13px;"></span>
+      <span id="overdue-alert" onclick="navigate('bills')" style="display:none;background:#fee2e2;color:#b91c1c;font-size:11px;font-weight:700;padding:4px 10px;border-radius:10px;cursor:pointer;border:1px solid #fca5a5;"></span>
+      <span class="badge">2026</span>
+    </div>
+  </div>
+  <div id="content">
+
+    <!-- ===== DASHBOARD PAGE ===== -->
+    <div id="page-dashboard" class="page active">
+
+      <!-- QUICK ACTIONS -->
+      <div style="background:var(--card);border-radius:12px;padding:18px 20px;margin-bottom:20px;box-shadow:0 1px 4px rgba(0,0,0,0.06);display:flex;align-items:center;gap:12px;flex-wrap:wrap;border-left:4px solid var(--primary-light);">
+        <span style="font-size:13px;font-weight:700;color:var(--text-muted);margin-right:4px;">QUICK ACTIONS:</span>
+        <button class="btn btn-primary" onclick="openAddInvoice('may')" style="font-size:13px;padding:9px 18px;">➕ New Invoice</button>
+        <button class="btn btn-ghost" onclick="openAddExpense()" style="font-size:13px;padding:9px 18px;">💸 Add Expense</button>
+        <button class="btn btn-ghost" onclick="openAddStock()" style="font-size:13px;padding:9px 18px;">📦 Add Stock</button>
+        <button class="btn btn-ghost" onclick="navigate('invoices')" style="font-size:13px;padding:9px 18px;">📋 All Invoices</button>
+        <button class="btn btn-ghost" onclick="navigate('bills')" style="font-size:13px;padding:9px 18px;color:var(--danger);">⚠️ Unpaid Bills</button>
+      </div>
+
+      <div class="kpi-grid">
+        <div class="kpi-card blue">
+          <div class="kpi-label">Total Revenue (Paid)</div>
+          <div class="kpi-value">₭218.6M</div>
+          <div class="kpi-sub">Feb – Apr 2026 (paid)</div>
+          <div class="kpi-change up">+ ₭89.3M May (pending)</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label">Apr Revenue</div>
+          <div class="kpi-value">₭91.0M</div>
+          <div class="kpi-sub">Best month so far</div>
+          <div class="kpi-change up">▲ 44% vs Mar</div>
+        </div>
+        <div class="kpi-card orange">
+          <div class="kpi-label">Total Invoices</div>
+          <div class="kpi-value">109</div>
+          <div class="kpi-sub">Feb–May 2026</div>
+          <div class="kpi-change up">3 cancelled · LG097–LG126</div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-label">Panel Items in Stock</div>
+          <div class="kpi-value">149+</div>
+          <div class="kpi-sub">Beam panels tracked</div>
+          <div class="kpi-change">483 meters total</div>
+        </div>
+        <div class="kpi-card purple">
+          <div class="kpi-label">Top Customer</div>
+          <div class="kpi-value" style="font-size:16px;">Mharlek Co.</div>
+          <div class="kpi-sub">Most frequent client</div>
+          <div class="kpi-change up">30+ invoices</div>
+        </div>
+      </div>
+
+      <div class="chart-grid">
+        <div class="chart-card">
+          <h3>Monthly Revenue (KIP)</h3>
+          <div class="chart-container">
+            <canvas id="revenueChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Revenue by Customer (Apr)</h3>
+          <div class="chart-container">
+            <canvas id="customerChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-grid">
+        <div class="chart-card">
+          <h3>Invoice Count per Month</h3>
+          <div class="chart-container">
+            <canvas id="invoiceCountChart"></canvas>
+          </div>
+        </div>
+        <div class="chart-card">
+          <h3>Commission vs Revenue</h3>
+          <div class="chart-container">
+            <canvas id="commissionChart"></canvas>
+          </div>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Recent Invoices</h3>
+          <button class="btn btn-primary" onclick="navigate('invoices')">View All →</button>
+        </div>
+        <table id="recent-invoices-table">
+          <thead><tr>
+            <th>Invoice No.</th><th>Customer</th><th>Month</th>
+            <th class="text-right">Amount (KIP)</th><th>Status</th>
+          </tr></thead>
+          <tbody id="recent-invoices-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== INVOICES PAGE ===== -->
+    <div id="page-invoices" class="page">
+      <div class="tabs">
+        <div class="tab active" onclick="switchTab('invoices','feb')">February 2026</div>
+        <div class="tab" onclick="switchTab('invoices','mar')">March 2026</div>
+        <div class="tab" onclick="switchTab('invoices','apr')">April 2026</div>
+        <div class="tab" onclick="switchTab('invoices','may')" style="color:#f59e0b;">May 2026 🆕</div>
+        <div class="tab" onclick="switchTab('invoices','all')">All Months</div>
+      </div>
+
+      <div id="inv-tab-feb" class="tab-content active">
+        <div class="table-card">
+          <div class="table-header">
+            <h3>February 2026 — Formwork Payments</h3>
+            <div class="table-toolbar">
+              <input type="search" placeholder="Search..." onkeyup="filterTable('inv-feb-body', this.value)" style="width:160px;">
+              <button class="btn btn-primary" onclick="openAddInvoice('feb')">+ Add Invoice</button>
+            </div>
+          </div>
+          <table>
+            <thead><tr>
+              <th>#</th><th>Invoice No.</th><th>Customer</th>
+              <th class="text-right">Amount (KIP)</th><th class="text-right">Commission</th>
+              <th>Status</th><th>BCEL Ref</th><th>Remarks</th><th></th>
+            </tr></thead>
+            <tbody id="inv-feb-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="inv-tab-mar" class="tab-content">
+        <div class="table-card">
+          <div class="table-header">
+            <h3>March 2026 — Formwork Payments</h3>
+            <div class="table-toolbar">
+              <input type="search" placeholder="Search..." onkeyup="filterTable('inv-mar-body', this.value)" style="width:160px;">
+              <button class="btn btn-primary" onclick="openAddInvoice('mar')">+ Add Invoice</button>
+            </div>
+          </div>
+          <table>
+            <thead><tr>
+              <th>#</th><th>Invoice No.</th><th>Customer</th>
+              <th class="text-right">Amount (KIP)</th><th class="text-right">Commission</th>
+              <th>Status</th><th>BCEL Ref</th><th>Remarks</th><th></th>
+            </tr></thead>
+            <tbody id="inv-mar-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="inv-tab-apr" class="tab-content">
+        <div class="table-card">
+          <div class="table-header">
+            <h3>April 2026 — Formwork Payments</h3>
+            <div class="table-toolbar">
+              <input type="search" placeholder="Search..." onkeyup="filterTable('inv-apr-body', this.value)" style="width:160px;">
+              <button class="btn btn-primary" onclick="openAddInvoice('apr')">+ Add Invoice</button>
+            </div>
+          </div>
+          <table>
+            <thead><tr>
+              <th>#</th><th>Invoice No.</th><th>Customer</th>
+              <th class="text-right">Amount (KIP)</th><th class="text-right">Commission</th>
+              <th>Status</th><th>BCEL Ref</th><th>Remarks</th><th></th>
+            </tr></thead>
+            <tbody id="inv-apr-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="inv-tab-may" class="tab-content">
+        <div class="table-card">
+          <div class="table-header">
+            <h3>May 2026 — Formwork Payments <span style="font-size:12px;color:var(--warning);font-weight:600;margin-left:8px;">⚠️ Customer names need to be filled in — edit each row</span></h3>
+            <div class="table-toolbar">
+              <input type="search" placeholder="Search..." onkeyup="filterTable('inv-may-body', this.value)" style="width:160px;">
+              <button class="btn btn-primary" onclick="openAddInvoice('may')">+ Add Invoice</button>
+            </div>
+          </div>
+          <table>
+            <thead><tr>
+              <th>#</th><th>Invoice No.</th><th>Customer</th>
+              <th class="text-right">Amount (KIP)</th><th class="text-right">Commission</th>
+              <th>Status</th><th>BCEL Ref</th><th>Remarks</th><th></th>
+            </tr></thead>
+            <tbody id="inv-may-body"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div id="inv-tab-all" class="tab-content">
+        <div class="table-card">
+          <div class="table-header">
+            <h3>All Invoices — Feb to Apr 2026</h3>
+            <div class="table-toolbar">
+              <input type="search" placeholder="Search..." onkeyup="filterTable('inv-all-body', this.value)" style="width:200px;">
+            </div>
+          </div>
+          <table>
+            <thead><tr>
+              <th>Invoice No.</th><th>Customer</th><th>Month</th>
+              <th class="text-right">Amount (KIP)</th><th class="text-right">Commission</th>
+              <th>Status</th><th>BCEL Ref</th>
+            </tr></thead>
+            <tbody id="inv-all-body"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== EXPENSES PAGE ===== -->
+    <div id="page-expenses" class="page">
+      <div class="kpi-grid">
+        <div class="kpi-card red">
+          <div class="kpi-label">Feb Expenses (USD)</div>
+          <div class="kpi-value">~$4,180</div>
+          <div class="kpi-sub">Operational costs</div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-label">Mar Expenses</div>
+          <div class="kpi-value">₭55.9M</div>
+          <div class="kpi-sub">~$2,590 USD</div>
+        </div>
+        <div class="kpi-card red">
+          <div class="kpi-label">Apr Expenses</div>
+          <div class="kpi-value">₭80.3M</div>
+          <div class="kpi-sub">~$3,720 USD</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label">Balance (Apr End)</div>
+          <div class="kpi-value text-red">-₭31.9M</div>
+          <div class="kpi-sub">Deficit from expenses</div>
+        </div>
+      </div>
+
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Expense Records</h3>
+          <div class="table-toolbar">
+            <select onchange="filterExpenses(this.value)">
+              <option value="all">All Months</option>
+              <option value="feb">February</option>
+              <option value="mar">March</option>
+              <option value="apr">April</option>
+            </select>
+            <button class="btn btn-primary" onclick="openAddExpense()">+ Add Expense</button>
+          </div>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Date</th><th>Description</th><th>Month</th>
+            <th class="text-right">Amount (KIP)</th><th>Category</th><th></th>
+          </tr></thead>
+          <tbody id="expenses-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== PANEL STOCK PAGE ===== -->
+    <div id="page-stock" class="page">
+      <div class="kpi-grid">
+        <div class="kpi-card blue">
+          <div class="kpi-label">Total Panel Types</div>
+          <div class="kpi-value" id="stock-types">0</div>
+          <div class="kpi-sub">Different sizes tracked</div>
+        </div>
+        <div class="kpi-card green">
+          <div class="kpi-label">Total Panels</div>
+          <div class="kpi-value" id="stock-total">0</div>
+          <div class="kpi-sub">All types combined</div>
+        </div>
+        <div class="kpi-card orange">
+          <div class="kpi-label">Currently Rented</div>
+          <div class="kpi-value" id="stock-rented">0</div>
+          <div class="kpi-sub">Out on site</div>
+        </div>
+        <div class="kpi-card purple">
+          <div class="kpi-label">Available</div>
+          <div class="kpi-value" id="stock-available">0</div>
+          <div class="kpi-sub">Ready to rent</div>
+        </div>
+      </div>
+
+      <div class="table-header" style="margin-bottom:16px;">
+        <div class="section-title">📦 Panel Inventory</div>
+        <button class="btn btn-primary" onclick="openAddStock()">+ Add Panel Type</button>
+      </div>
+
+      <div class="stock-grid" id="stock-grid"></div>
+
+      <div class="table-card">
+        <div class="table-header">
+          <h3>Stock Detail Table</h3>
+          <button class="btn btn-ghost" onclick="openStockEdit()">✏️ Edit Stock</button>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Panel Type</th><th>Size / Spec</th><th>Pieces</th><th>Length (m)</th>
+            <th>Total Meters</th><th>Currently Rented</th><th>Available</th>
+            <th class="text-right">Rate/Day (KIP)</th><th></th>
+          </tr></thead>
+          <tbody id="stock-table-body"></tbody>
+        </table>
+      </div>
+
+      <div class="table-card" style="margin-top:16px;">
+        <div class="table-header">
+          <h3>Active Rentals</h3>
+          <button class="btn btn-primary" onclick="openAddRental()">+ New Rental</button>
+        </div>
+        <table>
+          <thead><tr>
+            <th>Customer</th><th>Panel Type</th><th>Qty</th>
+            <th>Start Date</th><th>End Date</th><th>Days</th>
+            <th class="text-right">Total (KIP)</th><th>Status</th><th></th>
+          </tr></thead>
+          <tbody id="rental-table-body"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- ===== GALLERY PAGE ===== -->
+    <div id="page-gallery" class="page">
+      <div class="table-header" style="margin-bottom:16px;">
+        <div class="section-title">📷 Project Photos</div>
+        <div class="table-toolbar">
+          <select id="gallery-filter" onchange="filterGallery()">
+            <option value="all">All Photos</option>
+            <option value="2026-04">April 2026</option>
+            <option value="2026-05">May 2026</option>
+          </select>
+          <button class="btn btn-primary" onclick="document.getElementById('gallery-upload').click()">+ Upload Photo</button>
+          <input type="file" id="gallery-upload" multiple accept="image/*" style="display:none" onchange="addGalleryPhotos(this)">
+        </div>
+      </div>
+      <p class="text-muted" style="font-size:13px; margin-bottom:16px;">
+        Showing site documentation photos from project folder (196 photos found, Apr 23 – May 22, 2026).
+        Photos are stored locally in your Google Drive folder.
+      </p>
+      <div class="gallery-grid" id="gallery-grid"></div>
+    </div>
+
+    <!-- ===== DOCUMENTS PAGE ===== -->
+    <div id="page-documents" class="page">
+      <div class="upload-zone" id="drop-zone"
+           ondragover="event.preventDefault(); this.classList.add('dragover')"
+           ondragleave="this.classList.remove('dragover')"
+           ondrop="handleDrop(event)"
+           onclick="document.getElementById('file-input').click()">
+        <div class="upload-icon">📂</div>
+        <p><strong>Click to upload</strong> or drag and drop files here</p>
+        <p style="font-size:12px; margin-top:6px;">PDF, Excel, Word, Images supported</p>
+        <input type="file" id="file-input" multiple style="display:none" onchange="handleFileUpload(this)">
+      </div>
+
+      <div class="table-header" style="margin-bottom:12px;">
+        <div class="section-title">📄 Documents</div>
+        <input type="search" placeholder="Search files..." onkeyup="filterDocs(this.value)" style="width:200px;">
+      </div>
+
+      <div class="file-list" id="file-list"></div>
+    </div>
+
+    <!-- ===== CALENDAR PAGE ===== -->
+    <div id="page-calendar" class="page">
+      <div class="kpi-grid" style="margin-bottom:16px;">
+        <div class="kpi-card blue" style="border-top-color:var(--accent);">
+          <div class="kpi-label">Connected Account</div>
+          <div class="kpi-value" style="font-size:14px;">mr.xailovanxay@gmail.com</div>
+          <div class="kpi-sub">Google Calendar</div>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:16px; padding:16px;">
+        <p style="font-size:13px; color:var(--text-muted); margin-bottom:12px;">
+          ℹ️ <strong>To see your private calendar:</strong> In Google Calendar settings, share your calendar with "Make available to public" or add <code>mr.xailovanxay@gmail.com</code> below. The embed shows public events by default.
+        </p>
+        <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+          <label style="font-size:13px; font-weight:600;">Calendar Email:</label>
+          <input type="text" id="cal-email" value="mr.xailovanxay@gmail.com" style="width:260px;">
+          <select id="cal-timezone">
+            <option value="Asia/Vientiane">Asia/Vientiane (ICT)</option>
+            <option value="Asia/Bangkok">Asia/Bangkok</option>
+            <option value="UTC">UTC</option>
+          </select>
+          <button class="btn btn-primary" onclick="loadCalendar()">Load Calendar</button>
+        </div>
+      </div>
+      <div class="chart-card" style="padding:0; overflow:hidden; border-radius:12px;">
+        <iframe id="calendar-iframe"
+          src=""
+          style="width:100%; height:700px; border:none; display:block;"
+          frameborder="0" scrolling="no">
+        </iframe>
+      </div>
+    </div>
+
+    <!-- ===== UNPAID BILLS PAGE ===== -->
+    <div id="page-bills" class="page">
+      <div class="bills-summary" id="bills-summary-row"></div>
+      <div class="table-header" style="margin-bottom:16px;">
+        <div class="section-title" id="bills-page-title">⚠️ <span data-i18n="bills.title">Unpaid Bills &amp; Overdue Invoices</span></div>
+        <div class="table-toolbar">
+          <select id="bills-filter" onchange="renderBills()" style="font-size:13px;padding:7px 12px;border:1px solid var(--border);border-radius:8px;">
+            <option value="all" data-i18n="bills.filter.all">All</option>
+            <option value="overdue" data-i18n="bills.filter.overdue">Overdue</option>
+            <option value="pending" data-i18n="bills.filter.pending">Pending</option>
+            <option value="due-soon" data-i18n="bills.filter.dueSoon">Due Soon (7d)</option>
+          </select>
+        </div>
+      </div>
+      <div id="bills-list"></div>
+    </div>
+
+    <!-- ===== HISTORY PAGE ===== -->
+    <div id="page-history" class="page">
+      <div class="table-card">
+        <div class="table-header">
+          <h3 data-i18n="nav.history">📋 Activity History</h3>
+          <div class="table-toolbar">
+            <select id="history-filter" onchange="renderHistory(this.value)" style="font-size:13px;">
+              <option value="all">All Actions</option>
+              <option value="INVOICE">Invoices</option>
+              <option value="EXPENSE">Expenses</option>
+              <option value="STOCK">Stock</option>
+              <option value="OTHER">Other</option>
+            </select>
+            <button class="btn btn-ghost" onclick="clearHistory()" style="color:var(--danger);font-size:12px;">🗑️ Clear All</button>
+          </div>
+        </div>
+        <div id="history-list"></div>
+      </div>
+    </div>
+
+  </div><!-- end #content -->
+</div><!-- end #main -->
+
+<!-- ADD / EDIT INVOICE MODAL -->
+<div class="modal-overlay" id="modal-invoice">
+  <div class="modal">
+    <h3 id="inv-modal-title">Add New Invoice</h3>
+    <input type="hidden" id="inv-edit-month" value="">
+    <input type="hidden" id="inv-edit-id" value="">
+    <div class="form-row">
+      <div class="form-group">
+        <label>Invoice No.</label>
+        <input type="text" id="inv-no" placeholder="e.g. LG097/26">
+      </div>
+      <div class="form-group">
+        <label>Month</label>
+        <select id="inv-month">
+          <option value="feb">February 2026</option>
+          <option value="mar">March 2026</option>
+          <option value="apr">April 2026</option>
+          <option value="may">May 2026</option>
+          <option value="jun">June 2026</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Customer Name</label>
+      <input type="text" id="inv-customer" placeholder="Customer name">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Amount (KIP)</label>
+        <input type="number" id="inv-amount" placeholder="e.g. 3500000">
+      </div>
+      <div class="form-group">
+        <label>Commission (KIP)</label>
+        <input type="number" id="inv-commission" placeholder="Optional">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Status</label>
+        <select id="inv-status">
+          <option value="paid">Paid</option>
+          <option value="pending">Pending</option>
+          <option value="cancel">Cancelled</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="inv-date">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>BCEL One Payment Ref</label>
+        <input type="text" id="inv-payref" placeholder="e.g. TXN202605001234" style="font-family:monospace;">
+      </div>
+      <div class="form-group">
+        <label>Remarks</label>
+        <input type="text" id="inv-remarks" placeholder="Optional notes">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-invoice')">Cancel</button>
+      <button class="btn btn-primary" id="inv-save-btn" onclick="saveInvoice()">Save Invoice</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD EXPENSE MODAL -->
+<div class="modal-overlay" id="modal-expense">
+  <div class="modal">
+    <h3>Add Expense</h3>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Date</label>
+        <input type="date" id="exp-date">
+      </div>
+      <div class="form-group">
+        <label>Month</label>
+        <select id="exp-month">
+          <option value="feb">February 2026</option>
+          <option value="mar">March 2026</option>
+          <option value="apr">April 2026</option>
+          <option value="may">May 2026</option>
+        </select>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Description</label>
+      <input type="text" id="exp-desc" placeholder="What was this expense for?">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Amount (KIP)</label>
+        <input type="number" id="exp-amount" placeholder="e.g. 500000">
+      </div>
+      <div class="form-group">
+        <label>Category</label>
+        <select id="exp-category">
+          <option>Fuel</option>
+          <option>Salary</option>
+          <option>Maintenance</option>
+          <option>Office</option>
+          <option>Transport</option>
+          <option>Workers</option>
+          <option>Other</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-expense')">Cancel</button>
+      <button class="btn btn-success" onclick="saveExpense()">Save Expense</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD STOCK MODAL -->
+<div class="modal-overlay" id="modal-stock">
+  <div class="modal">
+    <h3>Add / Edit Panel Type</h3>
+    <input type="hidden" id="stock-edit-id">
+    <div class="form-group">
+      <label>Panel Name</label>
+      <input type="text" id="stock-name" placeholder="e.g. Column Form 25x25">
+    </div>
+    <div class="form-group">
+      <label>Size / Specification</label>
+      <input type="text" id="stock-spec" placeholder="e.g. 25x25x4m">
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Total Pieces</label>
+        <input type="number" id="stock-pieces" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>Length per Piece (m)</label>
+        <input type="number" id="stock-length" step="0.5" placeholder="4">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Currently Rented</label>
+        <input type="number" id="stock-rented-count" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>Rate per Day (KIP/m)</label>
+        <input type="number" id="stock-rate" placeholder="e.g. 6500">
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-stock')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveStock()">Save Panel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ADD RENTAL MODAL -->
+<div class="modal-overlay" id="modal-rental">
+  <div class="modal">
+    <h3>New Rental Record</h3>
+    <div class="form-group">
+      <label>Customer</label>
+      <input type="text" id="rent-customer" placeholder="Customer name">
+    </div>
+    <div class="form-group">
+      <label>Panel Type</label>
+      <select id="rent-panel"></select>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Quantity (pieces)</label>
+        <input type="number" id="rent-qty" placeholder="0">
+      </div>
+      <div class="form-group">
+        <label>Total Meters</label>
+        <input type="number" id="rent-meters" step="0.5" placeholder="0">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group">
+        <label>Start Date</label>
+        <input type="date" id="rent-start">
+      </div>
+      <div class="form-group">
+        <label>End Date</label>
+        <input type="date" id="rent-end">
+      </div>
+    </div>
+    <div class="form-group">
+      <label>Status</label>
+      <select id="rent-status">
+        <option>Active</option>
+        <option>Returned</option>
+        <option>Overdue</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" onclick="closeModal('modal-rental')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveRental()">Save Rental</button>
+    </div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ===== AUTH / PASSWORD PROTECTION =====
+const AUTH_HASH_KEY = 'lgb_pw_hash';
+const AUTH_SESSION_KEY = 'lgb_session_tok';
+let _authMode = 'login'; // 'login' | 'setup' | 'change'
+
+async function _hashPw(pw) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode('LGB::' + pw));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function checkAuth() {
+  const stored = localStorage.getItem(AUTH_HASH_KEY);
+  const session = sessionStorage.getItem(AUTH_SESSION_KEY);
+  if (!stored) {
+    // First launch — set up a password
+    _authMode = 'setup';
+    document.getElementById('auth-subtitle').textContent = 'Welcome! Create a password to protect your dashboard.';
+    document.getElementById('auth-pw1').placeholder = 'New password';
+    document.getElementById('auth-pw2').style.display = '';
+    document.getElementById('auth-btn').textContent = '🔐 Set Password & Enter';
+    document.getElementById('auth-hint').textContent = '🛡️ Choose a password only you and your sister know';
+    setTimeout(() => document.getElementById('auth-pw1').focus(), 100);
+  } else if (session && session === stored.slice(0, 16)) {
+    // Valid session in this browser tab — skip overlay
+    document.getElementById('auth-overlay').classList.add('hidden');
+  } else {
+    // Regular login
+    _authMode = 'login';
+    setTimeout(() => document.getElementById('auth-pw1').focus(), 100);
+  }
+}
+
+async function submitPassword() {
+  const pw1 = document.getElementById('auth-pw1').value;
+  const errEl = document.getElementById('auth-error');
+  errEl.textContent = '';
+  if (!pw1) { errEl.textContent = 'Please enter a password.'; return; }
+
+  if (_authMode === 'setup' || _authMode === 'change') {
+    const pw2 = document.getElementById('auth-pw2').value;
+    if (pw1.length < 4) { errEl.textContent = 'Password must be at least 4 characters.'; return; }
+    if (pw1 !== pw2) { errEl.textContent = 'Passwords do not match.'; return; }
+    const hash = await _hashPw(pw1);
+    localStorage.setItem(AUTH_HASH_KEY, hash);
+    sessionStorage.setItem(AUTH_SESSION_KEY, hash.slice(0, 16));
+    _dismissOverlay();
+    if (_authMode === 'change') toast('Password changed successfully! 🔐', 'success');
+    _authMode = 'login';
+  } else {
+    const hash = await _hashPw(pw1);
+    const stored = localStorage.getItem(AUTH_HASH_KEY);
+    if (hash === stored) {
+      sessionStorage.setItem(AUTH_SESSION_KEY, stored.slice(0, 16));
+      _dismissOverlay();
+    } else {
+      errEl.textContent = '❌ Incorrect password. Please try again.';
+      document.getElementById('auth-pw1').value = '';
+      document.getElementById('auth-pw1').focus();
+    }
+  }
+}
+
+function _dismissOverlay() {
+  document.getElementById('auth-overlay').classList.add('hidden');
+  document.getElementById('auth-pw1').value = '';
+  document.getElementById('auth-pw2').value = '';
+  document.getElementById('auth-error').textContent = '';
+}
+
+function lockDashboard() {
+  sessionStorage.removeItem(AUTH_SESSION_KEY);
+  _authMode = 'login';
+  document.getElementById('auth-subtitle').textContent = 'Enter your password to access the dashboard';
+  document.getElementById('auth-pw1').placeholder = 'Password';
+  document.getElementById('auth-pw1').value = '';
+  document.getElementById('auth-pw2').value = '';
+  document.getElementById('auth-pw2').style.display = 'none';
+  document.getElementById('auth-btn').textContent = '🔓 Unlock Dashboard';
+  document.getElementById('auth-hint').textContent = '🔒 LGB Woodwork · Private Dashboard · 2026';
+  document.getElementById('auth-error').textContent = '';
+  document.getElementById('auth-overlay').classList.remove('hidden');
+  setTimeout(() => document.getElementById('auth-pw1').focus(), 100);
+}
+
+function openChangePassword() {
+  _authMode = 'change';
+  document.getElementById('auth-subtitle').textContent = 'Enter a new password for your dashboard.';
+  document.getElementById('auth-pw1').placeholder = 'New password';
+  document.getElementById('auth-pw2').style.display = '';
+  document.getElementById('auth-btn').textContent = '🔑 Change Password';
+  document.getElementById('auth-hint').textContent = '🛡️ Min 4 characters · You stay logged in after changing';
+  document.getElementById('auth-pw1').value = '';
+  document.getElementById('auth-pw2').value = '';
+  document.getElementById('auth-error').textContent = '';
+  document.getElementById('auth-overlay').classList.remove('hidden');
+  setTimeout(() => document.getElementById('auth-pw1').focus(), 100);
+}
+
+// ===== DATA =====
+const DB_KEY = 'lgb_dashboard_v3';
+
+function loadDB() {
+  try { return JSON.parse(localStorage.getItem(DB_KEY)) || null; } catch { return null; }
+}
+function saveDB(data) {
+  localStorage.setItem(DB_KEY, JSON.stringify(data));
+}
+
+function initDB() {
+  const existing = loadDB();
+  if (existing) return existing;
+
+  // Empty database for new installations — no seed data exposed publicly
+  const db = {
+    invoices: { feb: [], mar: [], apr: [], may: [] },
+    expenses: [],
+    stock: [],
+    rentals: [],
+    documents: [],
+    nextId: { inv: 1, exp: 1, stock: 1, rent: 1, hist: 1 },
+    history: []
+  };
+  saveDB(db);
+  return db;
+}
+
+let db = initDB();
+
+function checkAndMigrate() {
+  let changed = false;
+  // Only run for existing users — new empty installs skip entirely
+  if (!db.invoices.feb || db.invoices.feb.length === 0) return;
+  // Ensure structural fields exist
+  if (!db.invoices.may) { db.invoices.may = []; changed = true; }
+  if (!db.history) { db.history = []; changed = true; }
+  if (!db.nextId.hist) { db.nextId.hist = 1; changed = true; }
+  if (changed) saveDB(db);
+}
+checkAndMigrate();
+
+// ===== NAVIGATION =====
+const pageTitles = {
+  dashboard: 'Dashboard', invoices: 'Invoices', expenses: 'Expenses',
+  stock: 'Panel Stock', gallery: 'Photo Gallery', documents: 'Documents', calendar: 'Calendar',
+  bills: 'Unpaid Bills',
+  history: 'Activity History'
+};
+
+function navigate(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  document.getElementById('page-title').textContent = pageTitles[page] || page;
+  const nav = document.querySelector(`.nav-item[onclick="navigate('${page}')"]`);
+  if (nav) nav.classList.add('active');
+
+  if (page === 'invoices') renderInvoices();
+  if (page === 'expenses') renderExpenses();
+  if (page === 'stock') renderStock();
+  if (page === 'gallery') renderGallery();
+  if (page === 'documents') renderDocuments();
+  if (page === 'calendar') loadCalendar();
+  if (page === 'bills') renderBills();
+  if (page === 'history') renderHistory();
+}
+
+// ===== TABS =====
+function switchTab(page, tab) {
+  const prefix = (page === 'invoices') ? 'inv' : page;
+  document.querySelectorAll(`[id^="${prefix}-tab-"]`).forEach(el => el.classList.remove('active'));
+  document.querySelectorAll(`#page-${page} .tab`).forEach(t => t.classList.remove('active'));
+  document.getElementById(`${prefix}-tab-${tab}`).classList.add('active');
+  event.target.classList.add('active');
+  if (page === 'invoices') renderInvoiceTables();
+}
+
+// ===== HELPERS =====
+function kip(n) { return '₭' + (n || 0).toLocaleString(); }
+function statusBadge(s) {
+  if (s === 'paid') return '<span class="status-paid">Paid</span>';
+  if (s === 'pending') return '<span class="status-pending">Pending</span>';
+  return '<span class="status-cancel">Cancelled</span>';
+}
+function filterTable(tbodyId, q) {
+  const rows = document.getElementById(tbodyId).querySelectorAll('tr');
+  rows.forEach(r => {
+    r.style.display = r.textContent.toLowerCase().includes(q.toLowerCase()) ? '' : 'none';
+  });
+}
+function filterDocs(q) { filterTable('file-list-inner', q); }
+
+// ===== CHARTS =====
+let charts = {};
+function destroyChart(id) { if (charts[id]) { charts[id].destroy(); delete charts[id]; } }
+
+function initCharts() {
+  const febTotal = db.invoices.feb.reduce((s,i)=>s+i.amount,0);
+  const marTotal = db.invoices.mar.reduce((s,i)=>s+i.amount,0);
+  const aprTotal = db.invoices.apr.reduce((s,i)=>s+i.amount,0);
+  const mayTotal = (db.invoices.may||[]).reduce((s,i)=>s+i.amount,0);
+  const febComm = db.invoices.feb.reduce((s,i)=>s+i.commission,0);
+  const marComm = db.invoices.mar.reduce((s,i)=>s+i.commission,0);
+  const aprComm = db.invoices.apr.reduce((s,i)=>s+i.commission,0);
+  const mayComm = (db.invoices.may||[]).reduce((s,i)=>s+i.commission,0);
+
+  // Revenue bar chart
+  destroyChart('revenueChart');
+  charts['revenueChart'] = new Chart(document.getElementById('revenueChart'), {
+    type: 'bar',
+    data: {
+      labels: ['February', 'March', 'April', 'May'],
+      datasets: [{
+        label: 'Revenue (₭)',
+        data: [febTotal, marTotal, aprTotal, mayTotal],
+        backgroundColor: ['#3b82f6','#10b981','#f59e0b','#8b5cf6'],
+        borderRadius: 8,
+      }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { ticks: { callback: v => '₭' + (v/1000000).toFixed(0)+'M' }, grid: { color: '#f3f4f6' } },
+        x: { grid: { display: false } }
+      }
+    }
+  });
+
+  // Customer pie (April)
+  const aprCust = {};
+  db.invoices.apr.forEach(i => {
+    if (i.status !== 'cancel' && i.amount > 0) {
+      const k = i.customer.split(' ')[0];
+      aprCust[k] = (aprCust[k] || 0) + i.amount;
+    }
+  });
+  const topCust = Object.entries(aprCust).sort((a,b)=>b[1]-a[1]).slice(0,6);
+  destroyChart('customerChart');
+  charts['customerChart'] = new Chart(document.getElementById('customerChart'), {
+    type: 'doughnut',
+    data: {
+      labels: topCust.map(c=>c[0]),
+      datasets: [{ data: topCust.map(c=>c[1]), backgroundColor: ['#3b82f6','#f59e0b','#10b981','#ef4444','#8b5cf6','#ec4899'], borderWidth: 2 }]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'right', labels: { font: {size:11}, boxWidth: 12 } } } }
+  });
+
+  // Invoice count
+  const mayInv = db.invoices.may || [];
+  destroyChart('invoiceCountChart');
+  charts['invoiceCountChart'] = new Chart(document.getElementById('invoiceCountChart'), {
+    type: 'bar',
+    data: {
+      labels: ['February', 'March', 'April', 'May'],
+      datasets: [
+        { label: 'Paid', data: [
+            db.invoices.feb.filter(i=>i.status==='paid').length,
+            db.invoices.mar.filter(i=>i.status==='paid').length,
+            db.invoices.apr.filter(i=>i.status==='paid').length,
+            mayInv.filter(i=>i.status==='paid').length
+          ], backgroundColor: '#10b981', borderRadius: 6 },
+        { label: 'Pending', data: [
+            db.invoices.feb.filter(i=>i.status==='pending').length,
+            db.invoices.mar.filter(i=>i.status==='pending').length,
+            db.invoices.apr.filter(i=>i.status==='pending').length,
+            mayInv.filter(i=>i.status==='pending').length
+          ], backgroundColor: '#f59e0b', borderRadius: 6 },
+        { label: 'Cancelled', data: [
+            db.invoices.feb.filter(i=>i.status==='cancel').length,
+            db.invoices.mar.filter(i=>i.status==='cancel').length,
+            db.invoices.apr.filter(i=>i.status==='cancel').length,
+            mayInv.filter(i=>i.status==='cancel').length
+          ], backgroundColor: '#ef4444', borderRadius: 6 },
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'top' } },
+      scales: { x: { stacked: true, grid: {display:false} }, y: { stacked: true } } }
+  });
+
+  // Commission chart
+  destroyChart('commissionChart');
+  charts['commissionChart'] = new Chart(document.getElementById('commissionChart'), {
+    type: 'bar',
+    data: {
+      labels: ['Feb', 'Mar', 'Apr', 'May'],
+      datasets: [
+        { label: 'Revenue', data: [febTotal, marTotal, aprTotal, mayTotal], backgroundColor: 'rgba(59,130,246,0.7)', borderRadius: 6 },
+        { label: 'Commissions', data: [febComm, marComm, aprComm, mayComm], backgroundColor: 'rgba(245,158,11,0.9)', borderRadius: 6 },
+      ]
+    },
+    options: { responsive: true, maintainAspectRatio: false,
+      plugins: { legend: { position: 'top' } },
+      scales: { y: { ticks: { callback: v => '₭'+(v/1000000).toFixed(1)+'M' } }, x: { grid: {display:false} } }
+    }
+  });
+
+  // Recent invoices (last 8 total)
+  const all = [
+    ...(db.invoices.may||[]).filter(i=>i.amount>0).slice(-4).map(i=>({...i,month:'May'})),
+    ...db.invoices.apr.filter(i=>i.amount>0).slice(-4).map(i=>({...i,month:'Apr'})),
+    ...db.invoices.mar.filter(i=>i.amount>0).slice(-2).map(i=>({...i,month:'Mar'})),
+    ...db.invoices.feb.filter(i=>i.amount>0).slice(-2).map(i=>({...i,month:'Feb'})),
+  ].reverse().slice(0,8);
+  document.getElementById('recent-invoices-body').innerHTML = all.map(i => `
+    <tr>
+      <td class="fw-bold">${i.no}</td>
+      <td>${i.customer}</td>
+      <td>${i.month} 2026</td>
+      <td class="text-right fw-bold">${kip(i.amount)}</td>
+      <td>${statusBadge(i.status)}</td>
+    </tr>`).join('');
+}
+
+// ===== INVOICES =====
+function renderInvoices() { renderInvoiceTables(); }
+
+function renderInvoiceTables() {
+  ['feb','mar','apr','may'].forEach(m => {
+    const tbody = document.getElementById('inv-'+m+'-body');
+    if (!tbody) return;
+    const data = db.invoices[m];
+    let total = 0, totalComm = 0;
+    tbody.innerHTML = data.map(i => {
+      total += i.amount; totalComm += i.commission;
+      return `<tr>
+        <td>${i.id}</td>
+        <td class="fw-bold">${i.no}</td>
+        <td>${i.customer}</td>
+        <td class="text-right">${i.amount ? kip(i.amount) : '-'}</td>
+        <td class="text-right">${i.commission ? kip(i.commission) : '-'}</td>
+        <td>${statusBadge(i.status)}</td>
+        <td style="font-size:11px;font-family:monospace;color:var(--info);">${i.payRef ? `<span style="background:#eff6ff;padding:2px 6px;border-radius:4px;">${i.payRef}</span>` : '<span style="color:var(--text-muted);">—</span>'}</td>
+        <td class="text-muted" style="font-size:12px;">${i.remarks||''}</td>
+        <td style="white-space:nowrap;">
+          <button class="btn btn-ghost" style="padding:4px 8px;font-size:11px;" onclick="openEditInvoice('${m}',${i.id})" title="Edit invoice">✏️</button>
+          <button class="btn btn-ghost" style="padding:4px 8px;font-size:11px;" onclick="deleteInvoice('${m}',${i.id})" title="Delete invoice">🗑️</button>
+        </td>
+      </tr>`;
+    }).join('') + `<tr class="totals-row">
+      <td colspan="3" class="text-right">TOTAL</td>
+      <td class="text-right">${kip(total)}</td>
+      <td class="text-right">${kip(totalComm)}</td>
+      <td colspan="3"></td>
+    </tr>`;
+  });
+
+  // All tab
+  const allBody = document.getElementById('inv-all-body');
+  if (allBody) {
+    const all = [
+      ...db.invoices.feb.map(i=>({...i,monthLabel:'February'})),
+      ...db.invoices.mar.map(i=>({...i,monthLabel:'March'})),
+      ...db.invoices.apr.map(i=>({...i,monthLabel:'April'})),
+      ...(db.invoices.may||[]).map(i=>({...i,monthLabel:'May'})),
+    ];
+    allBody.innerHTML = all.map(i => `<tr>
+      <td class="fw-bold">${i.no}</td>
+      <td>${i.customer}</td>
+      <td>${i.monthLabel}</td>
+      <td class="text-right">${i.amount ? kip(i.amount) : '-'}</td>
+      <td class="text-right">${i.commission ? kip(i.commission) : '-'}</td>
+      <td>${statusBadge(i.status)}</td>
+      <td style="font-size:11px;font-family:monospace;color:var(--info);">${i.payRef || '—'}</td>
+    </tr>`).join('');
+  }
+}
+
+// ===== EXPENSES =====
+function renderExpenses(filter = 'all') {
+  const tbody = document.getElementById('expenses-body');
+  const data = filter === 'all' ? db.expenses : db.expenses.filter(e => e.month === filter);
+  let total = 0;
+  tbody.innerHTML = data.map(e => {
+    total += e.amount;
+    return `<tr>
+      <td>${e.date}</td>
+      <td>${e.description}</td>
+      <td><span style="background:#e0e7ff;color:#3730a3;padding:2px 8px;border-radius:12px;font-size:11px;">${e.month.toUpperCase()}</span></td>
+      <td class="text-right fw-bold">${e.amount ? kip(e.amount) : '-'}</td>
+      <td><span style="background:#f3f4f6;padding:2px 8px;border-radius:8px;font-size:11px;">${e.category}</span></td>
+      <td><button class="btn btn-ghost" style="padding:4px 8px;font-size:11px;" onclick="deleteExpense(${e.id})">🗑️</button></td>
+    </tr>`;
+  }).join('') + (data.length ? `<tr class="totals-row"><td colspan="3" class="text-right">TOTAL</td><td class="text-right">${kip(total)}</td><td colspan="2"></td></tr>` : '');
+}
+
+function filterExpenses(val) { renderExpenses(val); }
+
+// ===== STOCK =====
+function renderStock() {
+  const grid = document.getElementById('stock-grid');
+  const tbody = document.getElementById('stock-table-body');
+  const rentSelect = document.getElementById('rent-panel');
+
+  let totalPieces = 0, totalRented = 0;
+  if (rentSelect) rentSelect.innerHTML = db.stock.map(s=>`<option>${s.name}</option>`).join('');
+
+  grid.innerHTML = db.stock.map(s => {
+    totalPieces += s.pieces; totalRented += s.rented;
+    const avail = s.pieces - s.rented;
+    const pct = s.pieces > 0 ? Math.round((s.rented / s.pieces) * 100) : 0;
+    const barClass = pct > 80 ? 'red' : pct > 50 ? 'orange' : 'green';
+    return `<div class="stock-card">
+      <h4>${s.name}</h4>
+      <div class="stock-type">${s.spec}</div>
+      <div class="stock-bar"><div class="stock-bar-fill ${barClass}" style="width:${pct}%"></div></div>
+      <div class="stock-nums">
+        <span class="stock-available">✓ ${avail} available</span>
+        <span class="stock-rented">${s.rented} rented</span>
+      </div>
+      <div style="margin-top:8px; font-size:11px; color:var(--text-muted);">${s.pieces} total | ${(s.pieces * s.lengthPerPiece).toFixed(1)}m</div>
+    </div>`;
+  }).join('');
+
+  tbody.innerHTML = db.stock.map(s => `<tr>
+    <td class="fw-bold">${s.name}</td>
+    <td style="font-size:12px;">${s.spec}</td>
+    <td>${s.pieces}</td>
+    <td>${s.lengthPerPiece}m</td>
+    <td>${(s.pieces * s.lengthPerPiece).toFixed(1)}m</td>
+    <td><span style="color:var(--warning);font-weight:700;">${s.rented}</span></td>
+    <td><span style="color:var(--success);font-weight:700;">${s.pieces - s.rented}</span></td>
+    <td class="text-right">${kip(s.rate)}</td>
+    <td>
+      <button class="btn btn-ghost" style="padding:4px 8px;font-size:11px;" onclick="editStock(${s.id})">✏️</button>
+      <button class="btn btn-ghost" style="padding:4px 8px;font-size:11px;" onclick="deleteStock(${s.id})">🗑️</button>
+    </td>
+  </tr>`).join('');
+
+  document.getElementById('stock-types').textContent = db.stock.length;
+  document.getElementById('stock-total').textContent = totalPieces;
+  document.getElementById('stock-rented').textContent = totalRented;
+  document.getElementById('stock-available').textContent = totalPieces - totalRented;
+
+  renderRentals();
+}
+
+function renderRentals() {
+  const tbody = document.getElementById('rental-table-body');
+  if (!tbody) return;
+  tbody.innerHTML = db.rentals.map(r => {
+    const start = new Date(r.startDate), end = new Date(r.endDate);
+    const days = Math.round((end-start)/(1000*60*60*24));
+    const stock = db.stock.find(s=>s.name===r.panel);
+    const total = stock ? days * r.meters * stock.rate : 0;
+    const statusColor = r.status==='Active'?'#d1fae5':'r.status==="Overdue"?"#fee2e2":"#f3f4f6"';
+    return `<tr>
+      <td class="fw-bold">${r.customer}</td>
+      <td>${r.panel}</td>
+      <td>${r.qty} pcs</td>
+      <td>${r.startDate}</td>
+      <td>${r.endDate}</td>
+      <td>${days}</td>
+      <td class="text-right fw-bold">${kip(total)}</td>
+      <td><span class="status-paid">${r.status}</span></td>
+      <td><button class="btn btn-ghost" style="padding:4px 8px;font-size:11px;" onclick="deleteRental(${r.id})">🗑️</button></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:20px;">No active rentals</td></tr>';
+}
+
+// ===== GALLERY =====
+function renderGallery() {
+  const grid = document.getElementById('gallery-grid');
+  const userPhotos = JSON.parse(localStorage.getItem('lgb_photos') || '[]');
+
+  // Generate placeholder cards for existing photos (from Google Drive folder)
+  const months = ['Apr','May'];
+  const placeholders = [];
+  for (let d = 23; d <= 30; d++) placeholders.push({label:`Apr ${d}`, month:'2026-04'});
+  for (let d = 1; d <= 22; d++) placeholders.push({label:`May ${d}`, month:'2026-05'});
+
+  const colors = ['#1e3a5f','#2d5a9e','#10b981','#f59e0b','#8b5cf6','#ef4444'];
+  const icons = ['🏗️','🔩','📐','🪛','🔧','🏢'];
+
+  grid.innerHTML = [
+    ...placeholders.map((p,i) => `
+      <div class="gallery-item" title="${p.label} 2026" style="background:${colors[i%colors.length]}; display:flex; align-items:center; justify-content:center; flex-direction:column; color:white;">
+        <div style="font-size:28px;">${icons[i%icons.length]}</div>
+        <div style="font-size:11px; margin-top:4px; opacity:0.8;">${p.label}</div>
+      </div>`),
+    ...userPhotos.map(p => `
+      <div class="gallery-item">
+        <img src="${p.src}" alt="${p.name}" title="${p.name}">
+      </div>`)
+  ].join('');
+}
+
+function addGalleryPhotos(input) {
+  const photos = JSON.parse(localStorage.getItem('lgb_photos') || '[]');
+  const files = Array.from(input.files);
+  let loaded = 0;
+  files.forEach(f => {
+    const reader = new FileReader();
+    reader.onload = e => {
+      photos.push({ src: e.target.result, name: f.name });
+      loaded++;
+      if (loaded === files.length) {
+        localStorage.setItem('lgb_photos', JSON.stringify(photos));
+        renderGallery();
+        toast(`${files.length} photo(s) added`, 'success');
+      }
+    };
+    reader.readAsDataURL(f);
+  });
+}
+
+// ===== DOCUMENTS =====
+function renderDocuments() {
+  const container = document.getElementById('file-list');
+  const icons = { pdf:'📄', xlsx:'📊', docx:'📝', jpg:'🖼️', png:'🖼️', default:'📎' };
+  const catColors = { Invoice:'#dbeafe', Quote:'#fef3c7', MOU:'#d1fae5', Financial:'#ede9fe', Rental:'#fce7f3', Stock:'#f0fdf4' };
+
+  container.innerHTML = `<div id="file-list-inner">` + db.documents.map(f => `
+    <div class="file-item" id="doc-${f.id}">
+      <span class="file-icon">${icons[f.type]||icons.default}</span>
+      <div style="flex:1; min-width:0;">
+        <div class="file-name" style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">${f.name}</div>
+        <div class="file-meta">${f.date} · ${f.size}</div>
+      </div>
+      <span style="background:${catColors[f.category]||'#f3f4f6'};padding:3px 10px;border-radius:12px;font-size:11px;font-weight:700;">${f.category}</span>
+      <button class="btn btn-ghost" style="padding:4px 10px;font-size:12px;" onclick="deleteDoc(${f.id})">🗑️</button>
+    </div>`).join('') + `</div>`;
+}
+
+function handleFileUpload(input) {
+  Array.from(input.files).forEach(f => {
+    const ext = f.name.split('.').pop().toLowerCase();
+    const size = f.size > 1024*1024 ? (f.size/1024/1024).toFixed(1)+' MB' : Math.round(f.size/1024)+' KB';
+    db.documents.push({
+      id: db.nextId.stock++, name: f.name, type: ext,
+      size, date: new Date().toISOString().split('T')[0], category: 'Uploaded'
+    });
+    saveDB(db);
+  });
+  renderDocuments();
+  toast(`${input.files.length} file(s) uploaded`, 'success');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  document.getElementById('drop-zone').classList.remove('dragover');
+  const fakeInput = { files: e.dataTransfer.files };
+  handleFileUpload(fakeInput);
+}
+
+function deleteDoc(id) {
+  if (!confirm('Remove this file from the list?')) return;
+  db.documents = db.documents.filter(d => d.id !== id);
+  saveDB(db);
+  renderDocuments();
+}
+
+// ===== CALENDAR =====
+function loadCalendar() {
+  const email = document.getElementById('cal-email')?.value || 'mr.xailovanxay@gmail.com';
+  const tz = document.getElementById('cal-timezone')?.value || 'Asia/Vientiane';
+  const src = encodeURIComponent(email);
+  const url = `https://calendar.google.com/calendar/embed?src=${src}&ctz=${tz}&showTitle=0&showNav=1&showDate=1&showPrint=0&showTabs=1&showCalendars=0&mode=MONTH`;
+  document.getElementById('calendar-iframe').src = url;
+}
+
+// ===== MODALS =====
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+let currentInvMonth = 'apr';
+function openAddInvoice(month) {
+  // Reset to Add mode
+  document.getElementById('inv-modal-title').textContent = 'Add New Invoice';
+  document.getElementById('inv-save-btn').textContent = 'Save Invoice';
+  document.getElementById('inv-edit-month').value = '';
+  document.getElementById('inv-edit-id').value = '';
+  document.getElementById('inv-month').value = month || 'may';
+  document.getElementById('inv-date').value = new Date().toISOString().split('T')[0];
+  document.getElementById('inv-status').value = 'pending';
+  ['inv-no','inv-customer','inv-amount','inv-commission','inv-remarks','inv-payref'].forEach(id => document.getElementById(id).value = '');
+  openModal('modal-invoice');
+}
+
+function openEditInvoice(month, id) {
+  const inv = (db.invoices[month] || []).find(i => i.id === id);
+  if (!inv) { toast('Invoice not found', 'error'); return; }
+  // Switch to Edit mode
+  document.getElementById('inv-modal-title').textContent = 'Edit Invoice — ' + inv.no;
+  document.getElementById('inv-save-btn').textContent = 'Update Invoice';
+  document.getElementById('inv-edit-month').value = month;
+  document.getElementById('inv-edit-id').value = id;
+  // Pre-fill fields
+  document.getElementById('inv-no').value       = inv.no;
+  document.getElementById('inv-customer').value = inv.customer || '';
+  document.getElementById('inv-amount').value   = inv.amount || '';
+  document.getElementById('inv-commission').value = inv.commission || '';
+  document.getElementById('inv-status').value   = inv.status || 'pending';
+  document.getElementById('inv-date').value     = inv.date || '';
+  document.getElementById('inv-payref').value   = inv.payRef || '';
+  document.getElementById('inv-remarks').value  = inv.remarks || '';
+  document.getElementById('inv-month').value    = month;
+  openModal('modal-invoice');
+}
+
+function saveInvoice() {
+  const month    = document.getElementById('inv-month').value;
+  const no       = document.getElementById('inv-no').value.trim();
+  const customer = document.getElementById('inv-customer').value.trim();
+  const amount   = parseFloat(document.getElementById('inv-amount').value) || 0;
+  const commission = parseFloat(document.getElementById('inv-commission').value) || 0;
+  const status   = document.getElementById('inv-status').value;
+  const date     = document.getElementById('inv-date').value;
+  const remarks  = document.getElementById('inv-remarks').value.trim();
+  const payRef   = document.getElementById('inv-payref').value.trim();
+
+  if (!no || !customer) { toast('Please fill Invoice No. and Customer', 'error'); return; }
+
+  const editId    = document.getElementById('inv-edit-id').value;
+  const editMonth = document.getElementById('inv-edit-month').value;
+
+  if (editId && editMonth) {
+    // ── EDIT MODE ──
+    const arr = db.invoices[editMonth] || [];
+    const idx = arr.findIndex(i => i.id === parseInt(editId));
+    if (idx === -1) { toast('Invoice not found', 'error'); return; }
+    const old = arr[idx];
+    arr[idx] = { ...old, no, customer, amount, commission, status, date, remarks, payRef };
+    addHistory('INVOICE', 'Updated invoice', `${no} · ${customer} · ${kip(amount)} · Status: ${status}${payRef ? ' · BCEL: '+payRef : ''}`);
+    toast('Invoice updated!', 'success');
+  } else {
+    // ── ADD MODE ──
+    if (!db.invoices[month]) db.invoices[month] = [];
+    const id = db.nextId.inv++;
+    db.invoices[month].push({ id, no, customer, amount, commission, status, date, remarks, payRef });
+    addHistory('INVOICE', 'Added invoice', `${no} · ${customer} · ${kip(amount)}${payRef ? ' · BCEL: '+payRef : ''}`);
+    toast('Invoice saved!', 'success');
+  }
+
+  saveDB(db);
+  closeModal('modal-invoice');
+  renderInvoiceTables();
+  initCharts();
+}
+
+function deleteInvoice(month, id) {
+  if (!confirm('Delete this invoice?')) return;
+  const inv = db.invoices[month].find(i => i.id === id);
+  db.invoices[month] = db.invoices[month].filter(i => i.id !== id);
+  if (inv) addHistory('INVOICE', 'Deleted invoice', `${inv.no} · ${inv.customer} · ${kip(inv.amount)}`);
+  saveDB(db);
+  renderInvoiceTables();
+  initCharts();
+  toast('Invoice deleted');
+}
+
+function openAddExpense() {
+  document.getElementById('exp-date').value = new Date().toISOString().split('T')[0];
+  openModal('modal-expense');
+}
+
+function saveExpense() {
+  const date = document.getElementById('exp-date').value;
+  const month = document.getElementById('exp-month').value;
+  const description = document.getElementById('exp-desc').value.trim();
+  const amount = parseFloat(document.getElementById('exp-amount').value) || 0;
+  const category = document.getElementById('exp-category').value;
+
+  if (!description) { toast('Please enter a description', 'error'); return; }
+  db.expenses.push({ id: db.nextId.exp++, date, month, description, amount, category });
+  addHistory('EXPENSE', 'Added expense', `${description} · ${kip(amount)} · ${month.toUpperCase()}`);
+  saveDB(db);
+  closeModal('modal-expense');
+  renderExpenses();
+  toast('Expense saved!', 'success');
+}
+
+function deleteExpense(id) {
+  if (!confirm('Delete this expense?')) return;
+  const exp = db.expenses.find(e => e.id === id);
+  db.expenses = db.expenses.filter(e => e.id !== id);
+  if (exp) addHistory('EXPENSE', 'Deleted expense', `${exp.description} · ${kip(exp.amount)}`);
+  saveDB(db);
+  renderExpenses();
+}
+
+function openAddStock() {
+  document.getElementById('stock-edit-id').value = '';
+  ['stock-name','stock-spec','stock-pieces','stock-length','stock-rented-count','stock-rate'].forEach(id => document.getElementById(id).value = '');
+  openModal('modal-stock');
+}
+
+function editStock(id) {
+  const s = db.stock.find(x => x.id === id);
+  if (!s) return;
+  document.getElementById('stock-edit-id').value = id;
+  document.getElementById('stock-name').value = s.name;
+  document.getElementById('stock-spec').value = s.spec;
+  document.getElementById('stock-pieces').value = s.pieces;
+  document.getElementById('stock-length').value = s.lengthPerPiece;
+  document.getElementById('stock-rented-count').value = s.rented;
+  document.getElementById('stock-rate').value = s.rate;
+  openModal('modal-stock');
+}
+
+function saveStock() {
+  const editId = document.getElementById('stock-edit-id').value;
+  const data = {
+    name: document.getElementById('stock-name').value.trim(),
+    spec: document.getElementById('stock-spec').value.trim(),
+    pieces: parseInt(document.getElementById('stock-pieces').value) || 0,
+    lengthPerPiece: parseFloat(document.getElementById('stock-length').value) || 0,
+    rented: parseInt(document.getElementById('stock-rented-count').value) || 0,
+    rate: parseInt(document.getElementById('stock-rate').value) || 0,
+  };
+  if (!data.name) { toast('Please enter a panel name', 'error'); return; }
+
+  if (editId) {
+    const idx = db.stock.findIndex(s => s.id === parseInt(editId));
+    if (idx >= 0) { db.stock[idx] = { ...db.stock[idx], ...data }; addHistory('STOCK', 'Updated stock', `${data.name} · ${data.pieces} pcs`); }
+  } else {
+    db.stock.push({ id: db.nextId.stock++, ...data });
+    addHistory('STOCK', 'Added stock', `${data.name} · ${data.pieces} pcs`);
+  }
+  saveDB(db);
+  closeModal('modal-stock');
+  renderStock();
+  toast('Panel stock saved!', 'success');
+}
+
+function openStockEdit() { openAddStock(); }
+
+function deleteStock(id) {
+  if (!confirm('Delete this panel type?')) return;
+  const s = db.stock.find(x => x.id === id);
+  db.stock = db.stock.filter(x => x.id !== id);
+  if (s) addHistory('STOCK', 'Deleted stock', `${s.name} · ${s.pieces} pcs`);
+  saveDB(db);
+  renderStock();
+  toast('Panel deleted');
+}
+
+function openAddRental() {
+  document.getElementById('rent-start').value = new Date().toISOString().split('T')[0];
+  openModal('modal-rental');
+}
+
+function saveRental() {
+  const rental = {
+    id: db.nextId.rent++,
+    customer: document.getElementById('rent-customer').value.trim(),
+    panel: document.getElementById('rent-panel').value,
+    qty: parseInt(document.getElementById('rent-qty').value) || 0,
+    meters: parseFloat(document.getElementById('rent-meters').value) || 0,
+    startDate: document.getElementById('rent-start').value,
+    endDate: document.getElementById('rent-end').value,
+    status: document.getElementById('rent-status').value,
+  };
+  if (!rental.customer) { toast('Please enter customer name', 'error'); return; }
+  db.rentals.push(rental);
+  saveDB(db);
+  closeModal('modal-rental');
+  renderRentals();
+  toast('Rental saved!', 'success');
+}
+
+function deleteRental(id) {
+  if (!confirm('Delete this rental?')) return;
+  db.rentals = db.rentals.filter(r => r.id !== id);
+  saveDB(db);
+  renderRentals();
+}
+
+// ===== TOAST =====
+function toast(msg, type = '') {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast show ' + type;
+  setTimeout(() => { el.classList.remove('show'); }, 3000);
+}
+
+// ===== TRANSLATIONS =====
+const TRANSLATIONS = {
+  en: {
+    'page.dashboard':'Dashboard','page.invoices':'Invoices','page.expenses':'Expenses',
+    'page.stock':'Panel Stock','page.gallery':'Photo Gallery','page.documents':'Documents',
+    'page.calendar':'Calendar','page.bills':'Unpaid Bills',
+    'nav.bills':'Unpaid Bills','nav.documents':'Documents','nav.calendar':'Calendar',
+    'nav.section.tools':'Tools',
+    'bills.title':'Unpaid Bills & Overdue Invoices','bills.subtitle':'Invoices pending payment',
+    'bills.filter.all':'All','bills.filter.overdue':'Overdue','bills.filter.soon':'Due Soon',
+    'bills.overdue':'Overdue','bills.due-today':'Due Today','bills.due-soon':'Due Soon','bills.upcoming':'Upcoming',
+    'bills.total-unpaid':'Total Unpaid','bills.paid-up':'All Paid Up!',
+    'bills.days-overdue':'days overdue','bills.due-in':'Due in',
+    'bills.none':'✅ All invoices are paid up — nothing outstanding!',
+    'bills.summary.overdue':'Overdue','bills.summary.soon':'Due Soon','bills.summary.total':'Total Amount',
+    'page.history':'Activity History','nav.history':'History',
+    'history.empty':'No activity recorded yet. Actions you take (add/delete invoices, expenses, stock) will appear here.',
+    'history.clear.confirm':'Clear all activity history?',
+  },
+  lo: {
+    'page.dashboard':'ໜ້າຫຼັກ','page.invoices':'ໃບສາຍ','page.expenses':'ລາຍຈ່າຍ',
+    'page.stock':'ສາງຜະລິດຕະພັນ','page.gallery':'ຮູບພາບ','page.documents':'ເອກະສານ',
+    'page.calendar':'ປະຕິທິນ','page.bills':'ໃບຄ້າງຊຳລະ',
+    'nav.bills':'ໃບຄ້າງຊຳລະ','nav.documents':'ເອກະສານ','nav.calendar':'ປະຕິທິນ',
+    'nav.section.tools':'ເຄື່ອງມື',
+    'bills.title':'ໃບຄ້າງຊຳລະ & ໃບໝົດກຳນົດ','bills.subtitle':'ໃບສາຍທີ່ຍັງລໍຖ້າການຊຳລະ',
+    'bills.filter.all':'ທັງໝົດ','bills.filter.overdue':'ເກີນກຳນົດ','bills.filter.soon':'ໃກ້ຄົບກຳນົດ',
+    'bills.overdue':'ເກີນກຳນົດ','bills.due-today':'ຄົບກຳນົດວັນນີ້','bills.due-soon':'ໃກ້ຄົບກຳນົດ','bills.upcoming':'ທີ່ຈະຄົບ',
+    'bills.total-unpaid':'ຍອດຄ້າງ','bills.paid-up':'ຊຳລະຄົບແລ້ວ!',
+    'bills.days-overdue':'ວັນທີ່ຜ່ານໄປ','bills.due-in':'ຄົບໃນ',
+    'bills.none':'✅ ໃບສາຍທັງໝົດໄດ້ຊຳລະແລ້ວ!',
+    'bills.summary.overdue':'ເກີນກຳນົດ','bills.summary.soon':'ໃກ້ຄົບ','bills.summary.total':'ລວມທັງໝົດ',
+  },
+  th: {
+    'page.dashboard':'แดชบอร์ด','page.invoices':'ใบแจ้งหนี้','page.expenses':'ค่าใช้จ่าย',
+    'page.stock':'สต็อกแผง','page.gallery':'แกลเลอรี่','page.documents':'เอกสาร',
+    'page.calendar':'ปฏิทิน','page.bills':'บิลค้างชำระ',
+    'nav.bills':'บิลค้างชำระ','nav.documents':'เอกสาร','nav.calendar':'ปฏิทิน',
+    'nav.section.tools':'เครื่องมือ',
+    'bills.title':'บิลค้างชำระและใบแจ้งหนี้เกินกำหนด','bills.subtitle':'ใบแจ้งหนี้ที่รอการชำระ',
+    'bills.filter.all':'ทั้งหมด','bills.filter.overdue':'เกินกำหนด','bills.filter.soon':'ใกล้ครบกำหนด',
+    'bills.overdue':'เกินกำหนด','bills.due-today':'ครบกำหนดวันนี้','bills.due-soon':'ใกล้ครบกำหนด','bills.upcoming':'กำลังจะครบ',
+    'bills.total-unpaid':'ยอดค้างชำระ','bills.paid-up':'ชำระครบแล้ว!',
+    'bills.days-overdue':'วันที่เกินมา','bills.due-in':'ครบใน',
+    'bills.none':'✅ ใบแจ้งหนี้ทั้งหมดชำระแล้ว!',
+    'bills.summary.overdue':'เกินกำหนด','bills.summary.soon':'ใกล้ครบ','bills.summary.total':'ยอดรวม',
+  },
+  zh: {
+    'page.dashboard':'仪表板','page.invoices':'发票','page.expenses':'支出',
+    'page.stock':'面板库存','page.gallery':'图库','page.documents':'文件',
+    'page.calendar':'日历','page.bills':'未付账单',
+    'nav.bills':'未付账单','nav.documents':'文件','nav.calendar':'日历',
+    'nav.section.tools':'工具',
+    'bills.title':'未付账单和逾期发票','bills.subtitle':'待付款的发票',
+    'bills.filter.all':'全部','bills.filter.overdue':'已逾期','bills.filter.soon':'即将到期',
+    'bills.overdue':'已逾期','bills.due-today':'今天到期','bills.due-soon':'即将到期','bills.upcoming':'即将到来',
+    'bills.total-unpaid':'未付总额','bills.paid-up':'全部已付！',
+    'bills.days-overdue':'天逾期','bills.due-in':'还有',
+    'bills.none':'✅ 所有发票已付清！',
+    'bills.summary.overdue':'已逾期','bills.summary.soon':'即将到期','bills.summary.total':'总金额',
+  },
+  fr: {
+    'page.dashboard':'Tableau de bord','page.invoices':'Factures','page.expenses':'Dépenses',
+    'page.stock':'Stock panneaux','page.gallery':'Galerie','page.documents':'Documents',
+    'page.calendar':'Calendrier','page.bills':'Factures impayées',
+    'nav.bills':'Factures impayées','nav.documents':'Documents','nav.calendar':'Calendrier',
+    'nav.section.tools':'Outils',
+    'bills.title':'Factures impayées et en retard','bills.subtitle':'Factures en attente de paiement',
+    'bills.filter.all':'Tout','bills.filter.overdue':'En retard','bills.filter.soon':'Bientôt dû',
+    'bills.overdue':'En retard','bills.due-today':"Dû aujourd'hui",'bills.due-soon':'Bientôt dû','bills.upcoming':'À venir',
+    'bills.total-unpaid':'Total impayé','bills.paid-up':'Tout est payé !',
+    'bills.days-overdue':'jours de retard','bills.due-in':'Dû dans',
+    'bills.none':'✅ Toutes les factures sont payées !',
+    'bills.summary.overdue':'En retard','bills.summary.soon':'Bientôt','bills.summary.total':'Montant total',
+  },
+  ja: {
+    'page.dashboard':'ダッシュボード','page.invoices':'請求書','page.expenses':'経費',
+    'page.stock':'パネル在庫','page.gallery':'ギャラリー','page.documents':'書類',
+    'page.calendar':'カレンダー','page.bills':'未払い請求書',
+    'nav.bills':'未払い請求書','nav.documents':'書類','nav.calendar':'カレンダー',
+    'nav.section.tools':'ツール',
+    'bills.title':'未払い請求書と期限超過','bills.subtitle':'支払い待ちの請求書',
+    'bills.filter.all':'すべて','bills.filter.overdue':'期限超過','bills.filter.soon':'もうすぐ期限',
+    'bills.overdue':'期限超過','bills.due-today':'本日期限','bills.due-soon':'もうすぐ期限','bills.upcoming':'今後期限',
+    'bills.total-unpaid':'未払い総額','bills.paid-up':'全額支払済！',
+    'bills.days-overdue':'日超過','bills.due-in':'あと',
+    'bills.none':'✅ すべての請求書は支払済です！',
+    'bills.summary.overdue':'期限超過','bills.summary.soon':'もうすぐ','bills.summary.total':'合計金額',
+  },
+  ko: {
+    'page.dashboard':'대시보드','page.invoices':'청구서','page.expenses':'지출',
+    'page.stock':'패널 재고','page.gallery':'갤러리','page.documents':'문서',
+    'page.calendar':'캘린더','page.bills':'미지급 청구서',
+    'nav.bills':'미지급 청구서','nav.documents':'문서','nav.calendar':'캘린더',
+    'nav.section.tools':'도구',
+    'bills.title':'미지급 및 연체 청구서','bills.subtitle':'결제 대기 중인 청구서',
+    'bills.filter.all':'전체','bills.filter.overdue':'연체','bills.filter.soon':'곧 만기',
+    'bills.overdue':'연체','bills.due-today':'오늘 만기','bills.due-soon':'곧 만기','bills.upcoming':'예정',
+    'bills.total-unpaid':'미지급 총액','bills.paid-up':'전액 납부 완료!',
+    'bills.days-overdue':'일 연체','bills.due-in':'만기까지',
+    'bills.none':'✅ 모든 청구서가 납부되었습니다!',
+    'bills.summary.overdue':'연체','bills.summary.soon':'곧 만기','bills.summary.total':'총 금액',
+  },
+  de: {
+    'page.dashboard':'Dashboard','page.invoices':'Rechnungen','page.expenses':'Ausgaben',
+    'page.stock':'Panel-Bestand','page.gallery':'Galerie','page.documents':'Dokumente',
+    'page.calendar':'Kalender','page.bills':'Unbezahlte Rechnungen',
+    'nav.bills':'Unbezahlte Rechnungen','nav.documents':'Dokumente','nav.calendar':'Kalender',
+    'nav.section.tools':'Werkzeuge',
+    'bills.title':'Unbezahlte und überfällige Rechnungen','bills.subtitle':'Rechnungen mit ausstehender Zahlung',
+    'bills.filter.all':'Alle','bills.filter.overdue':'Überfällig','bills.filter.soon':'Bald fällig',
+    'bills.overdue':'Überfällig','bills.due-today':'Heute fällig','bills.due-soon':'Bald fällig','bills.upcoming':'Demnächst',
+    'bills.total-unpaid':'Unbezahlter Betrag','bills.paid-up':'Alles bezahlt!',
+    'bills.days-overdue':'Tage überfällig','bills.due-in':'Fällig in',
+    'bills.none':'✅ Alle Rechnungen sind bezahlt!',
+    'bills.summary.overdue':'Überfällig','bills.summary.soon':'Bald fällig','bills.summary.total':'Gesamtbetrag',
+  },
+};
+
+let currentLang = 'en';
+
+function t(key) {
+  return (TRANSLATIONS[currentLang] && TRANSLATIONS[currentLang][key]) || TRANSLATIONS['en'][key] || key;
+}
+
+function setLanguage(lang) {
+  currentLang = lang;
+  applyTranslations();
+  const activePage = document.querySelector('.page.active');
+  if (activePage) {
+    const pageKey = activePage.id.replace('page-', '');
+    document.getElementById('page-title').textContent = t('page.' + pageKey);
+  }
+}
+
+function applyTranslations() {
+  document.querySelectorAll('[data-i18n]').forEach(el => {
+    const key = el.getAttribute('data-i18n');
+    el.textContent = t(key);
+  });
+}
+
+// ===== HISTORY =====
+function addHistory(cat, action, detail) {
+  if (!db.history) db.history = [];
+  if (!db.nextId.hist) db.nextId.hist = 1;
+  db.history.unshift({ id: db.nextId.hist++, ts: new Date().toISOString(), cat, action, detail });
+  if (db.history.length > 500) db.history = db.history.slice(0, 500);
+  saveDB(db);
+}
+
+function renderHistory(filter) {
+  filter = filter || (document.getElementById('history-filter') ? document.getElementById('history-filter').value : 'all');
+  const list = document.getElementById('history-list');
+  if (!list) return;
+  const entries = (db.history || []).filter(e => filter === 'all' || e.cat === filter);
+
+  if (entries.length === 0) {
+    list.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-muted);font-size:14px;">${t('history.empty')}</div>`;
+    return;
+  }
+
+  const CAT_COLORS = { INVOICE:'#3b82f6', EXPENSE:'#ef4444', STOCK:'#f59e0b', RENTAL:'#8b5cf6', OTHER:'#6b7280' };
+  const CAT_ICONS  = { INVOICE:'🧾', EXPENSE:'💸', STOCK:'📦', RENTAL:'🔑', OTHER:'📌' };
+
+  list.innerHTML = `
+    <table style="width:100%;border-collapse:collapse;font-size:13px;">
+      <thead><tr>
+        <th style="padding:10px 14px;text-align:left;font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--border);white-space:nowrap;">Date &amp; Time</th>
+        <th style="padding:10px 14px;text-align:left;font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--border);">Category</th>
+        <th style="padding:10px 14px;text-align:left;font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--border);">Action</th>
+        <th style="padding:10px 14px;text-align:left;font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid var(--border);">Details</th>
+      </tr></thead>
+      <tbody>
+        ${entries.map(e => {
+          const d = new Date(e.ts);
+          const dateStr = d.toLocaleDateString('en-US', {year:'numeric',month:'short',day:'numeric'});
+          const timeStr = d.toLocaleTimeString('en-US', {hour:'2-digit',minute:'2-digit'});
+          const color = CAT_COLORS[e.cat] || CAT_COLORS.OTHER;
+          const icon  = CAT_ICONS[e.cat]  || CAT_ICONS.OTHER;
+          return `<tr style="border-bottom:1px solid var(--border);">
+            <td style="padding:10px 14px;color:var(--text-muted);white-space:nowrap;font-size:12px;">${dateStr}<br><span style="font-size:11px;">${timeStr}</span></td>
+            <td style="padding:10px 14px;"><span style="background:${color}18;color:${color};font-size:11px;font-weight:700;padding:2px 8px;border-radius:10px;">${icon} ${e.cat}</span></td>
+            <td style="padding:10px 14px;font-weight:600;">${e.action}</td>
+            <td style="padding:10px 14px;color:var(--text-muted);font-size:12px;">${e.detail}</td>
+          </tr>`;
+        }).join('')}
+      </tbody>
+    </table>`;
+}
+
+function clearHistory() {
+  if (!confirm(t('history.clear.confirm'))) return;
+  db.history = [];
+  saveDB(db);
+  renderHistory('all');
+  document.getElementById('history-filter').value = 'all';
+  toast('History cleared');
+}
+
+// ===== EXPORT / IMPORT =====
+function exportData() {
+  const now = new Date();
+  const stamp = now.toISOString().replace(/[:.]/g,'-').slice(0,19);
+  const filename = `LGB-Dashboard-${stamp}.json`;
+  const json = JSON.stringify(db, null, 2);
+  const blob = new Blob([json], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = filename; a.click();
+  URL.revokeObjectURL(url);
+  addHistory('OTHER', 'Exported data', `File: ${filename}`);
+  toast('Data exported as ' + filename, 'success');
+}
+
+function importData(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const imported = JSON.parse(e.target.result);
+      // Basic validation
+      if (!imported.invoices || !imported.nextId) {
+        toast('Invalid file — not an LGB Dashboard export', 'error');
+        return;
+      }
+      if (!confirm(`Import data from "${file.name}"?\n\nThis will REPLACE all your current data. Make sure to Export first if you want to keep a backup.`)) return;
+      db = imported;
+      saveDB(db);
+      renderInvoiceTables();
+      initCharts();
+      updateOverdueCount();
+      addHistory('OTHER', 'Imported data', `File: ${file.name}`);
+      toast('Data imported successfully!', 'success');
+    } catch(err) {
+      toast('Failed to read file: ' + err.message, 'error');
+    }
+    event.target.value = ''; // reset input
+  };
+  reader.readAsText(file);
+}
+
+// ===== BILLS / OVERDUE =====
+function offsetDate(dateStr, days) {
+  const d = new Date(dateStr);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
+}
+
+function updateOverdueCount() {
+  const allMonths = ['feb', 'mar', 'apr', 'may'];
+  let overdueCount = 0;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  allMonths.forEach(month => {
+    (db.invoices[month] || []).forEach(inv => {
+      if (inv.status === 'pending') {
+        const dueDate = inv.dueDate || offsetDate(inv.date, 30);
+        const due = new Date(dueDate); due.setHours(0, 0, 0, 0);
+        if (due < today) overdueCount++;
+      }
+    });
+  });
+  const badge = document.getElementById('bills-badge');
+  const alert = document.getElementById('overdue-alert');
+  if (overdueCount > 0) {
+    badge.textContent = overdueCount;
+    badge.style.display = 'inline-block';
+    alert.textContent = `⚠️ ${overdueCount} overdue`;
+    alert.style.display = 'inline-block';
+  } else {
+    badge.style.display = 'none';
+    alert.style.display = 'none';
+  }
+}
+
+function renderBills() {
+  const allMonths = ['feb', 'mar', 'apr', 'may'];
+  const pending = [];
+  allMonths.forEach(month => {
+    (db.invoices[month] || []).forEach(inv => {
+      if (inv.status === 'pending') {
+        const dueDate = inv.dueDate || offsetDate(inv.date, 30);
+        pending.push({ ...inv, month, dueDate });
+      }
+    });
+  });
+
+  const filterVal = document.getElementById('bills-filter') ? document.getElementById('bills-filter').value : 'all';
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+
+  const categorized = pending.map(inv => {
+    const due = new Date(inv.dueDate); due.setHours(0, 0, 0, 0);
+    const diff = Math.round((due - today) / 86400000);
+    let cat, badge;
+    if (diff < 0)       { cat = 'overdue';   badge = `<span class="due-badge overdue">${Math.abs(diff)} ${t('bills.days-overdue')}</span>`; }
+    else if (diff === 0) { cat = 'due-today'; badge = `<span class="due-badge due-today">${t('bills.due-today')}</span>`; }
+    else if (diff <= 7)  { cat = 'due-soon';  badge = `<span class="due-badge due-soon">${t('bills.due-in')} ${diff} days</span>`; }
+    else                 { cat = 'upcoming';  badge = `<span class="due-badge upcoming">${t('bills.due-in')} ${diff} days</span>`; }
+    return { ...inv, cat, badge, diff };
+  });
+
+  const filtered = filterVal === 'all' || filterVal === 'pending' ? categorized
+    : filterVal === 'overdue' ? categorized.filter(c => c.cat === 'overdue')
+    : categorized.filter(c => c.cat === 'due-today' || c.cat === 'due-soon');
+
+  const sorted = [...filtered].sort((a, b) => a.diff - b.diff);
+
+  const overdueCount = categorized.filter(c => c.cat === 'overdue').length;
+  const soonCount    = categorized.filter(c => c.cat === 'due-today' || c.cat === 'due-soon').length;
+  const totalAmt     = pending.reduce((s, i) => s + (i.amount || 0), 0);
+
+  document.getElementById('bills-summary-row').innerHTML = `
+    <div class="bills-summary-card red"><div class="bsc-num">${overdueCount}</div><div class="bsc-label">${t('bills.summary.overdue')}</div></div>
+    <div class="bills-summary-card orange"><div class="bsc-num">${soonCount}</div><div class="bsc-label">${t('bills.summary.soon')}</div></div>
+    <div class="bills-summary-card blue"><div class="bsc-num">${pending.length}</div><div class="bsc-label">Total Pending</div></div>
+    <div class="bills-summary-card green"><div class="bsc-num" style="font-size:18px;">${kip(totalAmt)}</div><div class="bsc-label">${t('bills.summary.total')}</div></div>
+  `;
+
+  if (sorted.length === 0) {
+    document.getElementById('bills-list').innerHTML = `<div class="table-card" style="text-align:center;padding:48px;color:var(--text-muted);font-size:16px;">${t('bills.none')}</div>`;
+    return;
+  }
+
+  document.getElementById('bills-list').innerHTML = sorted.map(inv => {
+    const amtColor = inv.cat === 'overdue' ? 'text-red' : inv.cat === 'due-today' ? 'text-red' : '';
+    return `
+    <div class="bill-card ${inv.cat}">
+      <div class="bill-icon">🧾</div>
+      <div class="bill-info">
+        <div class="bill-title">${inv.customer}</div>
+        <div class="bill-meta">${inv.no} &middot; ${inv.month.charAt(0).toUpperCase()+inv.month.slice(1)} 2026 &middot; Due: ${inv.dueDate}</div>
+        ${inv.badge}
+      </div>
+      <div class="bill-due">
+        <div class="bill-amount ${amtColor}">${kip(inv.amount)}</div>
+        <div class="bill-date">${inv.remarks || 'Payment pending'}</div>
+      </div>
+    </div>`;
+  }).join('');
+
+  updateOverdueCount();
+}
+
+// ===== INIT =====
+document.addEventListener('DOMContentLoaded', () => {
+  checkAuth();
+  document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-US', {weekday:'long', year:'numeric', month:'long', day:'numeric'});
+  initCharts();
+  loadCalendar();
+  updateOverdueCount();
+});
+
+// Close modals on overlay click
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+</script>
+</body>
+</html>
